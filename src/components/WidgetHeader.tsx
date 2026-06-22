@@ -1,11 +1,12 @@
-import { IconButton, Badge } from "@gio/bigsu-ui";
+import { IconButton, Badge, Button } from "@gio/bigsu-ui";
 import { invoke } from "@tauri-apps/api/core";
 
 interface WidgetHeaderProps {
   asapCount: number;
+  onLogout: () => void;
 }
 
-function WidgetHeader({ asapCount }: WidgetHeaderProps) {
+function WidgetHeader({ asapCount, onLogout }: WidgetHeaderProps) {
   const handleReconnect = () => {
     invoke("reconnect_ws");
   };
@@ -21,13 +22,18 @@ function WidgetHeader({ asapCount }: WidgetHeaderProps) {
           <Badge variant="danger">{asapCount} ASAP</Badge>
         )}
       </div>
-      <IconButton
-        icon="refresh"
-        aria-label="Reconnect WebSocket"
-        variant="ghost"
-        size="sm"
-        onClick={handleReconnect}
-      />
+      <div className="flex items-center gap-1">
+        <IconButton
+          icon="refresh"
+          aria-label="Reconnect WebSocket"
+          variant="ghost"
+          size="sm"
+          onClick={handleReconnect}
+        />
+        <Button variant="ghost" size="sm" onClick={onLogout}>
+          Sign out
+        </Button>
+      </div>
     </header>
   );
 }

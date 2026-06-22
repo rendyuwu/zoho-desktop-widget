@@ -21,3 +21,7 @@ chrono = "0.4"
 tauri-plugin-notification = "2"
 tauri-plugin-store = "2"
 tauri-plugin-updater = "2"
+# Direct-bind LDAP auth (async + native-tls, matching tokio-tungstenite).
+ldap3 = { version = "0.11", default-features = false, features = ["tls-native"] }
+# OS keychain for "remember me" — Credential Manager / Keychain / Secret Service.
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }

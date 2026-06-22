@@ -15,7 +15,10 @@ Tauri v2 always-on-top desktop widget. Stream Zoho ticket counts + ASAP/Waiting 
 - Rust backend ! maintain WS connection even when window hidden/minimized to tray.
 - No AppShell/Sidebar/TopCommandBar. Widget too small for full shell.
 - No click-to-open ticket URLs (deferred).
-- No auth/login UI.
+- LDAP login gate before widget. Direct user bind. Login UI = BIGSU.
+- ⊥ service-account credential in binary (public release). Direct user bind only.
+- LDAP server on corp VPN. Public download off-VPN → bind unreachable → ⊥ app use.
+- Auth = client-side gate + VPN reachability. WS feed itself ⊥ server-side auth (separate backend work).
 - Ref impl: `/home/ubuntu/simondayce/zoho-frontend/resources/` (jQuery app. WS protocol, data shape, timer logic, threshold values reference).
 - Ref ! binding. ∃ better Rust-native approach (e.g. timer logic, data caching) → use it. Match behavior, not implementation.
 - Auto-update via `tauri-plugin-updater`. Tauri signing key only. OS code signing deferred.
@@ -40,6 +43,13 @@ Tauri v2 always-on-top desktop widget. Stream Zoho ticket counts + ASAP/Waiting 
 - env: `TAURI_SIGNING_PRIVATE_KEY` required for release CI. Generates `.sig` files for updater verification.
 - env: `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` required if key encrypted.
 - env: `ZOHO_WS_URL` — WS endpoint, baked at compile time via Rust `env!`. GitHub secret. No fallback — build fails if unset.
+- tauri-cmd: `ldap_login(username, password, remember)` → `Result<(), String>`. Direct bind. ok + remember → save keychain. ok → `start_session`. err → generic msg.
+- tauri-cmd: `auto_login()` → `{ authenticated: bool, username?: string, error?: string }`. Silent bind from keychain @ startup.
+- tauri-cmd: `logout()` → delete keychain creds.
+- env: `LDAP_SERVER_URI` — LDAP server, e.g. `ldap://<host>:389` | `ldaps://<host>:636`. Baked at compile via `env!`. GitHub secret. No fallback — build fails if unset.
+- env: `LDAP_BIND_TEMPLATE` — bind DN/UPN, `{user}` placeholder, e.g. `{user}@<domain>`. Baked at compile via `env!`. GitHub secret. No fallback.
+- env: `LDAP_ALLOW_INSECURE` — `?` opt-in. `true` → allow plain `ldap://` cleartext bind. Default ⊥.
+- keychain: OS credential store via `keyring` (Windows Credential Manager | macOS Keychain | Linux Secret Service). Stores `{username, password}` JSON for remember-me.
 - docs: `README.md` → overview, screenshots, install, dev setup, build, env vars, troubleshooting.
 - docs: `CHANGELOG.md` → version history. One entry per release.
 
@@ -62,6 +72,15 @@ V14: ⊥ silent update. User ! see toast + inline banner. Can defer ("Later").
 V15: Update check/install failure ! not crash app. Log error, continue normal operation.
 V16: Release CI ! produce draft release. Auto-update manifest (`latest.json`) ! published when draft → published.
 V17: ∀ release tag ! match `v*` semver pattern. ⊥ non-semver tags trigger CI.
+V18: ∀ app launch → LDAP login gate before widget | WS. Unauthenticated → login screen only.
+V19: LDAP = direct user bind. Bind id from `LDAP_BIND_TEMPLATE` (`{user}` → escaped username). ⊥ service-account password baked in binary.
+V20: `LDAP_SERVER_URI` + `LDAP_BIND_TEMPLATE` baked at compile via `env!`. No fallback — build fails if unset.
+V21: `ldaps://` required. plain `ldap://` ⊥ unless `LDAP_ALLOW_INSECURE=true` baked. cleartext opt-in only.
+V22: WS + timer ∉ spawn until auth success. `start_session` spawn-once, idempotent. ⊥ ticket fetch pre-login.
+V23: remember-me → OS keychain (`keyring`). ⊥ password plaintext on disk | `store.json`.
+V24: auth error to UI = generic. ⊥ user enumeration — bad creds & unknown user → same msg. ⊥ leak server URI/topology.
+V25: username DN-escaped (RFC 4514) before bind. ⊥ LDAP injection in bind DN.
+V26: logout → delete keychain creds → return login. auto_login: bind rc≠0 → forget creds, keep username prefill; server unreachable → keep creds, allow retry.
 
 ## §T TASKS
 
@@ -98,6 +117,14 @@ T29|x|create .github/workflows/release.yml: tag v* → cross-platform build, dra
 T30|x|impl UpdateBanner component: toast + inline banner. "Update available — v{version}". Buttons: "Update & Restart" / "Later"|V14
 T31|x|impl update error handling: check/install failure → log, continue. ⊥ crash|V15
 T32|.|test update flow: publish draft release → verify app detects update → install → relaunch|V12,V13,V16
+T33|x|impl Rust direct-bind LDAP auth (auth.rs): bind, keychain, ldap_login/auto_login/logout cmds|V18,V19,V24,V25,I.tauri-cmd
+T34|x|bake LDAP_SERVER_URI + LDAP_BIND_TEMPLATE via `env!`; LDAP_ALLOW_INSECURE gate; build.rs rerun-if-env-changed|V20,V21,I.env
+T35|x|gate WS+timer behind start_session spawn-once; remove from setup()|V22
+T36|x|build LoginScreen (BIGSU Card/FormField/Input/Checkbox/Button) + useAuth hook + App auth router|V18,V7
+T37|x|remember-me via OS keychain (keyring crate)|V23
+T38|x|logout control in WidgetHeader → forget creds → login|V26
+T39|x|Makefile + .env.local export LDAP_* build secrets|V20,I.env
+T40|x|tests: auth.rs (reject empty, DN-escape, generic errors) + LoginScreen.test.tsx|V24,V25
 
 ## §B BUGS
 

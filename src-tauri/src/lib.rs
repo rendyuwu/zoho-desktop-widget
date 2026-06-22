@@ -1,7 +1,9 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
-use tauri::{Manager, WindowEvent};
+use tauri::{AppHandle, Manager, WindowEvent};
 
+mod auth;
 mod timer;
 mod tray;
 mod updater;
@@ -11,6 +13,30 @@ mod ws;
 use ws::TicketPayload;
 
 pub struct TicketCache(pub Mutex<Option<TicketPayload>>);
+
+/// Guards the ticket session (WS + timer) so it starts exactly once, only
+/// after the user authenticates via LDAP.
+pub struct SessionStarted(pub AtomicBool);
+
+/// Start the authenticated ticket session: connect the WebSocket and run the
+/// escalation timer. Idempotent — subsequent calls (re-login, auto-login) are
+/// no-ops once the tasks are spawned.
+pub fn start_session(app: &AppHandle) {
+    let guard = app.state::<SessionStarted>();
+    if guard.0.swap(true, Ordering::SeqCst) {
+        return;
+    }
+
+    let ws_handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        ws::run_ws_client(ws_handle).await;
+    });
+
+    let timer_handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        timer::run_timer(timer_handle).await;
+    });
+}
 
 #[cfg(test)]
 mod tests {
@@ -217,6 +243,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(TicketCache(Mutex::new(None)))
+        .manage(SessionStarted(AtomicBool::new(false)))
         .manage(tray::TrayState {
             aot_item: Mutex::new(None),
         })
@@ -227,6 +254,9 @@ pub fn run() {
             ws::reconnect_ws,
             updater::check_for_updates,
             updater::install_update,
+            auth::ldap_login,
+            auth::auto_login,
+            auth::logout,
         ])
         .on_window_event(|window, event| {
             match event {
@@ -250,14 +280,9 @@ pub fn run() {
                 window_state::restore_window_position(&window);
             }
 
-            let handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                ws::run_ws_client(handle).await;
-            });
-            let handle2 = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                timer::run_timer(handle2).await;
-            });
+            // The ticket session (WS + timer) is NOT started here — it begins
+            // only after a successful LDAP login via `start_session` (see
+            // auth.rs). The updater may run pre-login; it needs no auth.
             let update_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 updater::run_update_check_on_launch(update_handle).await;

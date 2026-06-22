@@ -37,10 +37,19 @@ export TAURI_SIGNING_PRIVATE_KEY := $(SIGN_KEY)
 
 # Auto-load gitignored local build secrets if present:
 #   ZOHO_WS_URL=wss://...                      (baked into binary)
+#   LDAP_SERVER_URI=ldap://host:389            (baked into binary)
+#   LDAP_BIND_TEMPLATE={user}@biznetgio.com    (baked into binary)
+#   LDAP_ALLOW_INSECURE=true                   (allow cleartext ldap://)
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD=        (empty for a passwordless key)
+# In CI, set these as GitHub Actions repository secrets and export them in the
+# build step (same names). The LDAP server lives on the VPN, so a public
+# download cannot authenticate without VPN access.
 # Anything exported in the shell still wins.
 -include .env.local
 export ZOHO_WS_URL
+export LDAP_SERVER_URI
+export LDAP_BIND_TEMPLATE
+export LDAP_ALLOW_INSECURE
 export TAURI_SIGNING_PRIVATE_KEY_PASSWORD
 
 # ---- host OS detection ----
