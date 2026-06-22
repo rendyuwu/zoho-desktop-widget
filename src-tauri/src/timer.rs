@@ -18,16 +18,6 @@ pub enum TicketCategory {
     Asap,
 }
 
-impl TicketCategory {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            TicketCategory::New => "new",
-            TicketCategory::Warning => "warning",
-            TicketCategory::Asap => "asap",
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize)]
 pub struct TicketMoveEvent {
     pub id_ticket: String,
@@ -68,6 +58,7 @@ fn truncate(s: &str, max: usize) -> &str {
 
 pub async fn run_timer(app: AppHandle) {
     let mut prev_categories: HashMap<String, TicketCategory> = HashMap::new();
+    let mut prev_asap_count: usize = 0;
 
     loop {
         tokio::time::sleep(TICK_INTERVAL).await;
@@ -85,6 +76,10 @@ pub async fn run_timer(app: AppHandle) {
 
         if waiting.is_empty() {
             prev_categories.clear();
+            if prev_asap_count != 0 {
+                prev_asap_count = 0;
+                crate::tray::update_tray_badge(&app, 0);
+            }
             continue;
         }
 
@@ -118,6 +113,15 @@ pub async fn run_timer(app: AppHandle) {
         let current_ids: std::collections::HashSet<&String> =
             waiting.iter().map(|t| &t.id_ticket).collect();
         prev_categories.retain(|id, _| current_ids.contains(id));
+
+        let asap_count = {
+            let cache = app.state::<TicketCache>();
+            crate::tray::count_asap_tickets(&*cache)
+        };
+        if asap_count != prev_asap_count {
+            prev_asap_count = asap_count;
+            crate::tray::update_tray_badge(&app, asap_count);
+        }
     }
 }
 
@@ -158,13 +162,6 @@ mod tests {
         assert_eq!(classify(899), TicketCategory::Warning);
         assert_eq!(classify(900), TicketCategory::Asap);
         assert_ne!(classify(900), TicketCategory::Warning);
-    }
-
-    #[test]
-    fn test_category_as_str() {
-        assert_eq!(TicketCategory::New.as_str(), "new");
-        assert_eq!(TicketCategory::Warning.as_str(), "warning");
-        assert_eq!(TicketCategory::Asap.as_str(), "asap");
     }
 
     #[test]

@@ -2,12 +2,15 @@ use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
+use tokio::sync::Notify;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 use crate::TicketCache;
 
 const WS_URL: &str = "wss://your-domain.com/zoho/wss";
 const BACKOFF_SEQUENCE: &[u64] = &[1, 2, 5, 10, 30];
+
+pub struct ReconnectSignal(pub Notify);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TotalTicket {
@@ -55,6 +58,7 @@ pub struct WsMessage {
 
 pub async fn run_ws_client(app: AppHandle) {
     let mut backoff_index: usize = 0;
+    let reconnect_notify = app.state::<ReconnectSignal>();
 
     loop {
         eprintln!("WS connecting to {}", WS_URL);
@@ -68,26 +72,47 @@ pub async fn run_ws_client(app: AppHandle) {
 
                 let _ = write.send(Message::Text("GET".into())).await;
 
-                while let Some(msg_result) = read.next().await {
-                    match msg_result {
-                        Ok(Message::Text(text)) => {
-                            handle_message(&app, &text);
-                        }
-                        Ok(Message::Binary(data)) => {
-                            if let Ok(text) = String::from_utf8(data.to_vec()) {
-                                handle_message(&app, &text);
+                let mut force_reconnect = false;
+
+                loop {
+                    tokio::select! {
+                        msg_result = read.next() => {
+                            match msg_result {
+                                Some(Ok(Message::Text(text))) => {
+                                    handle_message(&app, &text);
+                                }
+                                Some(Ok(Message::Binary(data))) => {
+                                    if let Ok(text) = String::from_utf8(data.to_vec()) {
+                                        handle_message(&app, &text);
+                                    }
+                                }
+                                Some(Ok(Message::Close(_))) => {
+                                    eprintln!("WS closed by server");
+                                    break;
+                                }
+                                Some(Ok(_)) => {}
+                                Some(Err(e)) => {
+                                    eprintln!("WS error: {}", e);
+                                    break;
+                                }
+                                None => {
+                                    eprintln!("WS stream ended");
+                                    break;
+                                }
                             }
                         }
-                        Ok(Message::Close(_)) => {
-                            eprintln!("WS closed by server");
-                            break;
-                        }
-                        Ok(_) => {}
-                        Err(e) => {
-                            eprintln!("WS error: {}", e);
+                        _ = reconnect_notify.0.notified() => {
+                            eprintln!("WS reconnect requested");
+                            force_reconnect = true;
                             break;
                         }
                     }
+                }
+
+                if force_reconnect {
+                    let _ = write.send(Message::Close(None)).await;
+                    backoff_index = 0;
+                    continue;
                 }
 
                 eprintln!("WS disconnected. reconnecting...");
@@ -99,7 +124,15 @@ pub async fn run_ws_client(app: AppHandle) {
 
         let delay = next_backoff(backoff_index);
         eprintln!("reconnect backoff: {:?}", delay);
-        tokio::time::sleep(delay).await;
+
+        tokio::select! {
+            _ = tokio::time::sleep(delay) => {}
+            _ = reconnect_notify.0.notified() => {
+                eprintln!("WS reconnect requested during backoff");
+                backoff_index = 0;
+                continue;
+            }
+        }
 
         if backoff_index < BACKOFF_SEQUENCE.len() - 1 {
             backoff_index += 1;
@@ -128,9 +161,23 @@ pub fn next_backoff(attempt: usize) -> Duration {
     Duration::from_secs(BACKOFF_SEQUENCE[idx])
 }
 
+#[tauri::command]
+pub fn get_current_tickets(cache: tauri::State<'_, TicketCache>) -> Option<TicketPayload> {
+    let guard = cache.0.lock().unwrap();
+    guard.clone()
+}
+
+#[tauri::command]
+pub fn reconnect_ws(app: AppHandle) -> Result<(), String> {
+    let notify = app.state::<ReconnectSignal>();
+    notify.0.notify_one();
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
 
     #[test]
     fn test_backoff_sequence() {
@@ -212,5 +259,50 @@ mod tests {
         let msg: WsMessage = serde_json::from_str(raw).unwrap();
         assert!(msg.data.waiting_response.is_empty());
         assert_eq!(msg.data.total_ticket[0].status, "Open");
+    }
+
+    #[test]
+    fn test_cache_returns_none_when_empty() {
+        let cache = TicketCache(Mutex::new(None));
+        let guard = cache.0.lock().unwrap();
+        assert!(guard.is_none());
+    }
+
+    #[test]
+    fn test_cache_returns_data_when_populated() {
+        let payload = TicketPayload {
+            total_ticket: vec![TotalTicket { status: "Open".to_string(), total: 5 }],
+            onhold_ticket: vec![],
+            waiting_response: vec![],
+        };
+        let cache = TicketCache(Mutex::new(Some(payload.clone())));
+        let guard = cache.0.lock().unwrap();
+        let data = guard.as_ref().unwrap();
+        assert_eq!(data.total_ticket.len(), 1);
+        assert_eq!(data.total_ticket[0].status, "Open");
+        assert_eq!(data.total_ticket[0].total, 5);
+    }
+
+    #[tokio::test]
+    async fn test_reconnect_signal_fires() {
+        let notify = std::sync::Arc::new(Notify::new());
+        let notify_clone = notify.clone();
+
+        let notified = tokio::spawn(async move {
+            notify_clone.notified().await;
+        });
+
+        notify.notify_one();
+
+        tokio::time::timeout(Duration::from_secs(1), notified)
+            .await
+            .expect("notify signal did not fire in time")
+            .expect("spawned task panicked");
+    }
+
+    #[tokio::test]
+    async fn test_reconnect_signal_no_panic_without_listener() {
+        let notify = Notify::new();
+        notify.notify_one();
     }
 }
