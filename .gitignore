@@ -2,6 +2,9 @@
 node_modules/
 dist/
 
+# TypeScript
+*.tsbuildinfo
+
 # Rust
 src-tauri/target/
 
