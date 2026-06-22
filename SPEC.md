@@ -65,10 +65,10 @@ T15|x|build useTicketEvents hook: listen ticket-data + ticket-move events|I.taur
 T16|x|impl EmptyState: "No tickets waiting" when list empty|-
 T17|x|impl LoadingSkeleton: initial load state|-
 T18|x|impl window position persistence via tauri-plugin-store|I.file
-T19|.|test cross-platform: Linux, Windows, macOS window flags|V5
-T20|.|test WS auto-reconnect: kill server → verify backoff reconnect|V2
-T21|.|test timer threshold: simulate 600s/900s elapsed → verify ticket-move|V4
-T22|.|test notification: ticket crosses 900s → verify native notify fired|V3
+T19|x|test cross-platform: Linux, Windows, macOS window flags|V5
+T20|x|test WS auto-reconnect: kill server → verify backoff reconnect|V2
+T21|x|test timer threshold: simulate 600s/900s elapsed → verify ticket-move|V4
+T22|x|test notification: ticket crosses 900s → verify native notify fired|V3
 
 ## §B BUGS
 

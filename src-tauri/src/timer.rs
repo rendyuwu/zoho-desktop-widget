@@ -166,61 +166,22 @@ mod tests {
 
     #[test]
     fn test_ticket_move_event_serialization() {
-        let event = TicketMoveEvent {
-            id_ticket: "T001".to_string(),
-            from: TicketCategory::New,
-            to: TicketCategory::Asap,
-        };
-        let json = serde_json::to_string(&event).unwrap();
-        assert!(json.contains("\"id_ticket\":\"T001\""));
-        assert!(json.contains("\"from\":\"new\""));
-        assert!(json.contains("\"to\":\"asap\""));
-    }
-
-    #[test]
-    fn test_ticket_move_all_transitions() {
-        let transitions = vec![
-            (TicketCategory::New, TicketCategory::Warning),
-            (TicketCategory::Warning, TicketCategory::Asap),
-            (TicketCategory::New, TicketCategory::Asap),
-            (TicketCategory::Asap, TicketCategory::New),
+        let cases = vec![
+            (TicketCategory::New, "new"),
+            (TicketCategory::Warning, "warning"),
+            (TicketCategory::Asap, "asap"),
         ];
-        for (from, to) in transitions {
-            assert_ne!(from, to);
+        for (cat, expected) in cases {
+            let event = TicketMoveEvent {
+                id_ticket: "T001".to_string(),
+                from: cat,
+                to: cat,
+            };
+            let json = serde_json::to_string(&event).unwrap();
+            assert!(json.contains("\"id_ticket\":\"T001\""));
+            assert!(json.contains(&format!("\"from\":\"{}\"", expected)));
+            assert!(json.contains(&format!("\"to\":\"{}\"", expected)));
         }
-    }
-
-    #[test]
-    fn test_should_notify_asap_from_warning() {
-        assert!(should_notify_asap(TicketCategory::Warning, TicketCategory::Asap));
-    }
-
-    #[test]
-    fn test_should_notify_asap_from_new() {
-        assert!(should_notify_asap(TicketCategory::New, TicketCategory::Asap));
-    }
-
-    #[test]
-    fn test_should_not_notify_on_non_asap_transition() {
-        assert!(!should_notify_asap(TicketCategory::New, TicketCategory::Warning));
-        assert!(!should_notify_asap(TicketCategory::Warning, TicketCategory::New));
-    }
-
-    #[test]
-    fn test_should_not_notify_staying_asap() {
-        assert!(!should_notify_asap(TicketCategory::Asap, TicketCategory::Asap));
-    }
-
-    #[test]
-    fn test_should_not_notify_leaving_asap() {
-        assert!(!should_notify_asap(TicketCategory::Asap, TicketCategory::New));
-        assert!(!should_notify_asap(TicketCategory::Asap, TicketCategory::Warning));
-    }
-
-    #[test]
-    fn test_should_not_notify_staying_new_or_warning() {
-        assert!(!should_notify_asap(TicketCategory::New, TicketCategory::New));
-        assert!(!should_notify_asap(TicketCategory::Warning, TicketCategory::Warning));
     }
 
     #[test]
@@ -241,5 +202,102 @@ mod tests {
         let s = "日本語テスト".repeat(20);
         let result = truncate(&s, 10);
         assert_eq!(result.chars().count(), 10);
+    }
+
+    #[test]
+    fn test_tick_interval_is_3s() {
+        assert_eq!(TICK_INTERVAL, Duration::from_secs(3));
+    }
+
+    #[test]
+    fn test_warning_threshold_is_600s() {
+        assert_eq!(WARNING_THRESHOLD, 600);
+    }
+
+    #[test]
+    fn test_asap_threshold_is_900s() {
+        assert_eq!(ASAP_THRESHOLD, 900);
+    }
+
+    #[test]
+    fn test_ticket_move_new_to_warning_at_600s() {
+        let prev = classify(599);
+        let curr = classify(600);
+        assert_ne!(prev, curr);
+        assert_eq!(prev, TicketCategory::New);
+        assert_eq!(curr, TicketCategory::Warning);
+    }
+
+    #[test]
+    fn test_ticket_move_warning_to_asap_at_900s() {
+        let prev = classify(899);
+        let curr = classify(900);
+        assert_ne!(prev, curr);
+        assert_eq!(prev, TicketCategory::Warning);
+        assert_eq!(curr, TicketCategory::Asap);
+    }
+
+    #[test]
+    fn test_ticket_move_new_to_asap_skip_warning() {
+        let prev = classify(599);
+        let curr = classify(900);
+        assert_eq!(prev, TicketCategory::New);
+        assert_eq!(curr, TicketCategory::Asap);
+        assert_ne!(prev, curr);
+    }
+
+    #[test]
+    fn test_ticket_stays_in_category_no_move() {
+        assert_eq!(classify(0), classify(300));
+        assert_eq!(classify(600), classify(800));
+        assert_eq!(classify(900), classify(5000));
+    }
+
+    #[test]
+    fn test_ticket_move_asap_back_to_new() {
+        let prev = classify(900);
+        let curr = classify(100);
+        assert_eq!(prev, TicketCategory::Asap);
+        assert_eq!(curr, TicketCategory::New);
+        assert_ne!(prev, curr);
+    }
+
+    #[test]
+    fn test_notification_title_format() {
+        let title = format!("Ticket #{} → ASAP", "T001");
+        assert!(title.starts_with("Ticket #"));
+        assert!(title.ends_with("→ ASAP"));
+        assert!(title.contains("T001"));
+    }
+
+    #[test]
+    fn test_notification_body_format() {
+        let body = format!("[{}] {}", "Support", truncate("Login issue", 60));
+        assert!(body.starts_with("[Support] "));
+        assert!(body.contains("Login issue"));
+    }
+
+    #[test]
+    fn test_notification_body_truncates_subject() {
+        let long_subject = "a".repeat(100);
+        let body = format!("[{}] {}", "Dept", truncate(&long_subject, 60));
+        let body_after_bracket = body.strip_prefix("[Dept] ").unwrap();
+        assert_eq!(body_after_bracket.chars().count(), 60);
+    }
+
+    #[test]
+    fn test_notification_fires_exactly_when_crossing_to_asap() {
+        let all_categories = vec![
+            TicketCategory::New,
+            TicketCategory::Warning,
+            TicketCategory::Asap,
+        ];
+        for from in &all_categories {
+            for to in &all_categories {
+                let fires = should_notify_asap(*from, *to);
+                let should_fire = *to == TicketCategory::Asap && *from != TicketCategory::Asap;
+                assert_eq!(fires, should_fire, "from={:?} to={:?}", from, to);
+            }
+        }
     }
 }

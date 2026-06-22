@@ -305,4 +305,31 @@ mod tests {
         let notify = Notify::new();
         notify.notify_one();
     }
+
+    #[test]
+    fn test_backoff_sequence_matches_spec() {
+        assert_eq!(BACKOFF_SEQUENCE, &[1, 2, 5, 10, 30]);
+    }
+
+    #[test]
+    fn test_backoff_monotonic_non_decreasing() {
+        let mut prev = Duration::from_secs(0);
+        for i in 0..BACKOFF_SEQUENCE.len() {
+            let d = next_backoff(i);
+            assert!(d >= prev, "backoff at step {} decreased: {:?} < {:?}", i, d, prev);
+            prev = d;
+        }
+    }
+
+    #[test]
+    fn test_backoff_caps_at_30s_beyond_sequence() {
+        for i in BACKOFF_SEQUENCE.len()..100 {
+            assert_eq!(next_backoff(i), Duration::from_secs(30));
+        }
+    }
+
+    #[test]
+    fn test_ws_url_hardcoded() {
+        assert_eq!(WS_URL, "wss://your-domain.com/zoho/wss");
+    }
 }
