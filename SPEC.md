@@ -18,6 +18,9 @@ Tauri v2 always-on-top desktop widget. Stream Zoho ticket counts + ASAP/Waiting 
 - No auth/login UI.
 - Ref impl: `/home/ubuntu/simondayce/zoho-frontend/resources/` (jQuery app. WS protocol, data shape, timer logic, threshold values reference).
 - Ref ! binding. ∃ better Rust-native approach (e.g. timer logic, data caching) → use it. Match behavior, not implementation.
+- Auto-update via `tauri-plugin-updater`. Tauri signing key only. OS code signing deferred.
+- Release: GitHub Releases via `tauri-action`. Draft → manual publish. Stable channel only.
+- Update check: launch only. No periodic re-check.
 
 ## §I INTERFACES
 
@@ -29,6 +32,15 @@ Tauri v2 always-on-top desktop widget. Stream Zoho ticket counts + ASAP/Waiting 
 - tray: click → toggle window visibility. Icon shows ASAP count badge.
 - notify: native OS notification when ticket crosses to ASAP (≥900s).
 - file: `~/.config/zoho-widget/store.json` (window position, notification prefs).
+- updater: `tauri-plugin-updater` → check GitHub releases `latest.json`. Endpoint: `https://github.com/simondayce/zoho-desktop-widget/releases/latest/download/latest.json`.
+- tauri-cmd: `check_for_updates()` → check updater endpoint. Returns `{ available: bool, version?: string, body?: string }`.
+- tauri-cmd: `install_update()` → download + verify sig + install. Returns `{ success: bool, error?: string }`.
+- tauri-event: `update-available` → frontend. Payload: `{ version, body }`.
+- ci: `.github/workflows/release.yml` → tag `v*` triggers cross-platform build. Draft release. Uploads `.sig` + `latest.json` manifest.
+- env: `TAURI_SIGNING_PRIVATE_KEY` required for release CI. Generates `.sig` files for updater verification.
+- env: `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` required if key encrypted.
+- docs: `README.md` → overview, screenshots, install, dev setup, build, env vars, troubleshooting.
+- docs: `CHANGELOG.md` → version history. One entry per release.
 
 ## §V INVARIANTS
 
@@ -43,6 +55,12 @@ V8: ∀ MetricCard ! show label + value + period.
 V9: Ticket card ! show: id_ticket, department (Badge), subject, elapsed time, urgency Badge (danger/warning/info).
 V10: Color ≠ only indicator. Badge tone + text label always paired.
 V11: ⊥ AppShell/Sidebar/TopCommandBar in widget. Custom compact header only.
+V12: App ! check for updates on launch. ∃ update → fire `update-available` event.
+V13: Update download ! verify Tauri signature before install. ⊥ unsigned updates.
+V14: ⊥ silent update. User ! see toast + inline banner. Can defer ("Later").
+V15: Update check/install failure ! not crash app. Log error, continue normal operation.
+V16: Release CI ! produce draft release. Auto-update manifest (`latest.json`) ! published when draft → published.
+V17: ∀ release tag ! match `v*` semver pattern. ⊥ non-semver tags trigger CI.
 
 ## §T TASKS
 
@@ -69,6 +87,16 @@ T19|x|test cross-platform: Linux, Windows, macOS window flags|V5
 T20|x|test WS auto-reconnect: kill server → verify backoff reconnect|V2
 T21|x|test timer threshold: simulate 600s/900s elapsed → verify ticket-move|V4
 T22|x|test notification: ticket crosses 900s → verify native notify fired|V3
+T23|x|write README.md: overview, screenshots, install, dev setup, build, env vars, troubleshooting|I.docs
+T24|.|write CHANGELOG.md: initial v0.1.0 entry|I.docs
+T25|.|add tauri-plugin-updater to Cargo.toml + configure updater endpoint in tauri.conf.json|V12,V13,I.updater
+T26|.|impl Rust update check: check_for_updates() cmd, fire update-available event on launch|V12,V15,I.tauri-cmd,I.tauri-event
+T27|.|impl Rust install_update() cmd: download, verify sig, install, relaunch|V13,V15,I.tauri-cmd
+T28|.|generate Tauri signing key pair. Store private key as GitHub secret `TAURI_SIGNING_PRIVATE_KEY`|V13,I.env
+T29|.|create .github/workflows/release.yml: tag v* → cross-platform build, draft release, upload .sig + latest.json|V16,V17,I.ci
+T30|.|impl UpdateBanner component: toast + inline banner. "Update available — v{version}". Buttons: "Update & Restart" / "Later"|V14
+T31|.|impl update error handling: check/install failure → log, continue. ⊥ crash|V15
+T32|.|test update flow: publish draft release → verify app detects update → install → relaunch|V12,V13,V16
 
 ## §B BUGS
 
