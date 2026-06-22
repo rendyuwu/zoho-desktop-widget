@@ -49,7 +49,7 @@ V11: ⊥ AppShell/Sidebar/TopCommandBar in widget. Custom compact header only.
 ## §T TASKS
 
 id|status|task|cites
-T1|~|scaffold Tauri v2 project + Vite + React + TS|-
+T1|x|scaffold Tauri v2 project + Vite + React + TS|-
 T2|.|install BIGSU packages (@gio/bigsu-ui, @gio/bigsu-icons)|V7
 T3|.|config tauri.conf.json: frameless, alwaysOnTop, skipTaskbar, 360x640|V5,V11
 T4|.|impl Rust WS client (connect, parse JSON, auto-reconnect backoff)|V1,V2,I.ws
