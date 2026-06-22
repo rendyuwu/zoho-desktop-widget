@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@import "@gio/bigsu-tokens/theme.css";
+
+@source "../node_modules/@gio/bigsu-ui/dist";
+@source "../node_modules/@gio/bigsu-icons/dist";
+
+@theme inline {
+  --font-sans: var(--font-pjs, "Plus Jakarta Sans", system-ui, sans-serif);
+  --font-mono: var(--font-jbm, "JetBrains Mono", monospace);
+}
