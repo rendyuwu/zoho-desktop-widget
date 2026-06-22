@@ -115,6 +115,9 @@ pub async fn install_update(app: AppHandle) -> Result<InstallResult, String> {
 
     match update.download_and_install(|_, _| {}, || {}).await {
         Ok(()) => {
+            if let Err(e) = app.emit("update-installed", ()) {
+                eprintln!("install_update: failed to emit update-installed event: {}", e);
+            }
             app.restart();
         }
         Err(e) => {
@@ -260,5 +263,29 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert!(v.get("version").is_some());
         assert!(v.get("body").is_none());
+    }
+
+    #[test]
+    fn test_install_result_success_omits_error() {
+        let result = InstallResult {
+            success: true,
+            error: None,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(v["success"], true);
+        assert!(v.get("error").is_none());
+    }
+
+    #[test]
+    fn test_install_result_failure_includes_error() {
+        let result = InstallResult {
+            success: false,
+            error: Some("download failed".to_string()),
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(v["success"], false);
+        assert_eq!(v["error"], "download failed");
     }
 }
