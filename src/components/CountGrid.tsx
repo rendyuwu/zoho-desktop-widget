@@ -13,7 +13,7 @@ interface CountConfig {
 }
 
 function getCountTone(count: number): {
-  variant: "danger" | "warning" | "neutral";
+  variant: "danger" | "warning";
   label: string;
 } | null {
   if (count > 9) return { variant: "danger", label: "High" };

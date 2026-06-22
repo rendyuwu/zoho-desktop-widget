@@ -84,15 +84,15 @@ describe("CountGrid", () => {
     expect(screen.getByText("Watch")).toBeInTheDocument();
   });
 
-  it("does not show Badge for count < 6", () => {
+  it("shows Badge only for count >= 6, not for count < 6", () => {
     render(<CountGrid data={mockData} loading={false} />);
 
     const badgedCards = screen.getAllByText(/High|Watch/);
     expect(badgedCards.length).toBe(3);
   });
 
-  it("renders in loading state", () => {
-    render(<CountGrid data={null} loading={true} />);
+  it("renders in loading state — values hidden, labels visible", () => {
+    render(<CountGrid data={mockData} loading={true} />);
 
     const labels = [
       "GIO Open",
@@ -106,5 +106,10 @@ describe("CountGrid", () => {
     for (const label of labels) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
+
+    expect(screen.queryByText("12")).not.toBeInTheDocument();
+    expect(screen.queryByText("7")).not.toBeInTheDocument();
+    expect(screen.queryByText("High")).not.toBeInTheDocument();
+    expect(screen.queryByText("Watch")).not.toBeInTheDocument();
   });
 });
