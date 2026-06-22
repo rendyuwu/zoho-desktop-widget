@@ -1,3 +1,4 @@
+import { Toaster } from "@gio/bigsu-ui";
 import UpdateBanner from "./components/UpdateBanner";
 import WidgetHeader from "./components/WidgetHeader";
 import CountGrid from "./components/CountGrid";
@@ -20,6 +21,7 @@ function App() {
 
   return (
     <div className="flex h-screen flex-col bg-app text-text-primary">
+      <Toaster />
       <UpdateBanner />
       <WidgetHeader asapCount={asapCount} />
       <CountGrid data={data} loading={loading} />
