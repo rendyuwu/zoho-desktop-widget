@@ -25,6 +25,15 @@
 SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .ONESHELL:
+
+# Recipes are bash. On Windows, `SHELL := bash` only resolves if Git Bash is on
+# PATH; from cmd/PowerShell without it, make falls back to cmd.exe and every
+# `test`/`uname`/`{ ... }` line errors cryptically. Fail fast with a clear note.
+ifeq ($(OS),Windows_NT)
+  ifeq (,$(shell bash -c "command -v uname"))
+    $(error Run this Makefile from Git Bash, not cmd/PowerShell — see the header comment)
+  endif
+endif
 .DEFAULT_GOAL := help
 
 # ---- config (override on the CLI: make release VERSION=v1.2.3) ----
@@ -83,8 +92,7 @@ install: ## npm ci (must be on LAN to reach @gio bigsu registry)
 
 # ---- builds (run on the matching host) ----
 .PHONY: build
-build: ## Build for the current host OS
-	@$(MAKE) build-$(HOST)
+build: build-$(HOST) ## Build for the current host OS
 
 .PHONY: build-linux
 build-linux: check-key ## Build Linux bundles (.AppImage/.deb)
