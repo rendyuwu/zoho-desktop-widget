@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - System tray: toggle window visibility, always-on-top toggle, ASAP count badge
 - Window position persistence via tauri-plugin-store
 - BIGSU UI components: WidgetHeader, CountGrid (MetricCards), TicketCard, AsapList, WaitingList
-- Urgency badges: danger (ASAP), warning (10-15min), info (< 10min)
+- Urgency badges: danger (ASAP, >= 900s), warning (600-899s), info (< 600s)
 - Empty state, loading skeleton, error state
 - `get_current_tickets` and `reconnect_ws` Tauri commands
 - Cross-platform: Linux, Windows, macOS

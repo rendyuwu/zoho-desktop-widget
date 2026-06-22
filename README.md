@@ -2,7 +2,8 @@
 
 Always-on-top desktop widget streaming Zoho ticket data via WebSocket. Built with Tauri v2 (Rust backend + React frontend). BIGSU UI components.
 
-![Screenshot](docs/screenshot.png)
+<!-- TODO: Add screenshot after all features implemented (T25-T32) -->
+<!-- ![Screenshot](docs/screenshot.png) -->
 
 ## Overview
 
@@ -27,7 +28,9 @@ Compact 360px sidebar widget that stays on top of your desktop. Streams live tic
 
 ### Download
 
-Pre-built binaries available from [GitHub Releases](https://github.com/simondayce/zoho-desktop-widget/releases).
+> **Note:** Pre-built binaries and auto-update are not yet available. Auto-update (T25-T32) and release CI (T29) are pending implementation. Build from source for now.
+
+Pre-built binaries will be available from [GitHub Releases](https://github.com/simondayce/zoho-desktop-widget/releases) once release CI is set up.
 
 - **Linux**: `.AppImage` or `.deb`
 - **Windows**: `.msi` or `.exe` (NSIS)
@@ -75,8 +78,8 @@ Same as [Dev setup](#dev-setup) prerequisites. No additional env vars needed for
 
 | Variable | Required | Description |
 |---|---|---|
-| `TAURI_SIGNING_PRIVATE_KEY` | Release CI only | Tauri signing key for auto-update `.sig` files |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Release CI only | Password if signing key is encrypted |
+| `TAURI_SIGNING_PRIVATE_KEY` | Release CI only | Tauri signing key for auto-update `.sig` files (not yet implemented — T28) |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Release CI only | Password if signing key is encrypted (not yet implemented — T28) |
 
 **No env vars required for dev or local build.** WebSocket endpoint is hardcoded (`wss://your-domain.com/zoho/wss`), no auth token needed.
 
@@ -134,7 +137,10 @@ WS auto-reconnects on disconnect. Backoff sequence: 1s, 2s, 5s, 10s, 30s (cap).
 
 ### Window position not restored
 
-- Position stored in `~/.config/zoho-widget/store.json` (Linux/macOS) or `%APPDATA%/com.simondayce.zoho-widget/store.json` (Windows)
+- Position stored in platform config directory:
+  - **Linux**: `~/.config/zoho-widget/store.json`
+  - **macOS**: `~/Library/Application Support/com.simondayce.zoho-widget/store.json`
+  - **Windows**: `%APPDATA%/com.simondayce.zoho-widget/store.json`
 - Delete `store.json` to reset position to default
 
 ### Always-on-top not working
