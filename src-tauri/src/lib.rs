@@ -97,6 +97,10 @@ mod tests {
         assert!(!endpoints.is_empty(), "V12: at least one endpoint required");
         let url = endpoints[0].as_str().expect("endpoint must be string");
         assert!(
+            url.starts_with("https://"),
+            "V13: updater endpoint must be HTTPS — unsigned/MITM risk"
+        );
+        assert!(
             url.contains("github.com/simondayce/zoho-desktop-widget/releases"),
             "I.updater: endpoint must point to GitHub releases"
         );
@@ -144,19 +148,41 @@ mod tests {
         let key_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("keys")
             .join("update.key");
-        if key_path.exists() {
-            let output = std::process::Command::new("git")
-                .args(["check-ignore", key_path.to_str().unwrap()])
-                .current_dir(env!("CARGO_MANIFEST_DIR"))
-                .output();
-            if let Ok(out) = output {
-                assert!(
-                    out.status.success(),
-                    "V13: private key must be gitignored — found tracked at {:?}",
-                    key_path
-                );
-            }
+        if !key_path.exists() {
+            return;
         }
+        let output = std::process::Command::new("git")
+            .args(["check-ignore", key_path.to_str().unwrap()])
+            .current_dir(env!("CARGO_MANIFEST_DIR"))
+            .output();
+        let out = output.expect("git command failed — cannot verify private key is gitignored");
+        assert!(
+            out.status.success(),
+            "V13: private key must be gitignored — found tracked at {:?}",
+            key_path
+        );
+    }
+
+    #[test]
+    fn test_pubkey_matches_key_file() {
+        let conf = load_tauri_conf();
+        let conf_pubkey = conf["plugins"]["updater"]["pubkey"]
+            .as_str()
+            .expect("pubkey must exist in tauri.conf.json");
+        let pub_key_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("keys")
+            .join("update.key.pub");
+        if !pub_key_path.exists() {
+            return;
+        }
+        let file_pubkey = std::fs::read_to_string(&pub_key_path)
+            .expect("failed to read update.key.pub")
+            .trim()
+            .to_string();
+        assert_eq!(
+            conf_pubkey, file_pubkey,
+            "V13: pubkey in tauri.conf.json must match update.key.pub — mismatch means config is stale"
+        );
     }
 
     fn base64_decode(s: &str) -> Vec<u8> {
@@ -188,6 +214,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(TicketCache(Mutex::new(None)))
         .manage(tray::TrayState {
             aot_item: Mutex::new(None),

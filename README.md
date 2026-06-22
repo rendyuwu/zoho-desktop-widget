@@ -28,7 +28,7 @@ Compact 360px sidebar widget that stays on top of your desktop. Streams live tic
 
 ### Download
 
-> **Note:** Pre-built binaries and auto-update are not yet available. Auto-update (T25-T32) and release CI (T29) are pending implementation. Build from source for now.
+> **Note:** Auto-update infrastructure (signing key, updater plugin) is configured. Update check logic (T26), install command (T27), release CI (T29), and UpdateBanner UI (T30) are pending. Build from source for now.
 
 Pre-built binaries will be available from [GitHub Releases](https://github.com/simondayce/zoho-desktop-widget/releases) once release CI is set up.
 
@@ -78,10 +78,17 @@ Same as [Dev setup](#dev-setup) prerequisites. No additional env vars needed for
 
 | Variable | Required | Description |
 |---|---|---|
-| `TAURI_SIGNING_PRIVATE_KEY` | Release CI only | Tauri signing key for auto-update `.sig` files (not yet implemented — T28) |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Release CI only | Password if signing key is encrypted (not yet implemented — T28) |
+| `TAURI_SIGNING_PRIVATE_KEY` | Release CI only | Tauri signing key for auto-update `.sig` files. Copy contents of `src-tauri/keys/update.key` into this GitHub secret. |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Not required | Key generated without password. Omit this env var in CI. |
 
 **No env vars required for dev or local build.** WebSocket endpoint is hardcoded (`wss://your-domain.com/zoho/wss`), no auth token needed.
+
+### GitHub secret setup (release CI)
+
+1. Copy the contents of `src-tauri/keys/update.key` (private key, NOT the `.pub` file)
+2. Go to repo Settings → Secrets and variables → Actions → New repository secret
+3. Name: `TAURI_SIGNING_PRIVATE_KEY`, value: paste private key content
+4. No password secret needed — key was generated without encryption
 
 ## Architecture
 
