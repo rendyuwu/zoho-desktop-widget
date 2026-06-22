@@ -15,6 +15,7 @@ interface UseTicketEventsResult {
   loading: boolean;
   error: boolean;
   moves: TicketMoveRecord[];
+  tick: number;
 }
 
 function useTicketEvents(): UseTicketEventsResult {
@@ -22,6 +23,7 @@ function useTicketEvents(): UseTicketEventsResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [moves, setMoves] = useState<TicketMoveRecord[]>([]);
+  const [tick, setTick] = useState(0);
   const hasData = useRef(false);
 
   useEffect(() => {
@@ -88,7 +90,12 @@ function useTicketEvents(): UseTicketEventsResult {
     };
   }, []);
 
-  return { data, loading, error, moves };
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { data, loading, error, moves, tick };
 }
 
 export default useTicketEvents;

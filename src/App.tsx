@@ -2,19 +2,18 @@ import WidgetHeader from "./components/WidgetHeader";
 import EmptyTicketState from "./components/EmptyTicketState";
 import LoadingState from "./components/LoadingState";
 import ErrorTicketState from "./components/ErrorTicketState";
+import AsapList from "./components/AsapList";
+import WaitingList from "./components/WaitingList";
 import useTicketEvents from "./hooks/useTicketEvents";
-import { ASAP_THRESHOLD } from "./constants";
-
-function countAsap(tickets: { timestamp: number }[]): number {
-  const now = Math.floor(Date.now() / 1000);
-  return tickets.filter((t) => now - t.timestamp >= ASAP_THRESHOLD).length;
-}
+import { classifyTicket } from "./constants";
 
 function App() {
-  const { data, loading, error } = useTicketEvents();
+  const { data, loading, error, tick } = useTicketEvents();
 
   const waiting = data?.waiting_response ?? [];
-  const asapCount = countAsap(waiting);
+  const asapCount = waiting.filter((t) =>
+    classifyTicket(Math.floor(Date.now() / 1000) - t.timestamp) === "asap",
+  ).length;
   const showEmpty = !loading && !error && data !== null && waiting.length === 0;
 
   return (
@@ -24,10 +23,11 @@ function App() {
       {error && !data && <ErrorTicketState />}
       {showEmpty && <EmptyTicketState />}
       {!loading && !error && data && waiting.length > 0 && (
-        <main className="flex-1 overflow-y-auto p-3">
-          <p className="text-sm text-text-muted">
-            {waiting.length} ticket{waiting.length !== 1 ? "s" : ""} waiting
-          </p>
+        <main className="flex-1 overflow-y-auto p-3" key={tick}>
+          <div className="flex flex-col gap-3">
+            {asapCount > 0 && <AsapList tickets={waiting} />}
+            <WaitingList tickets={waiting} />
+          </div>
         </main>
       )}
     </div>
