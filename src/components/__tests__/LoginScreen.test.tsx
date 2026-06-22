@@ -75,8 +75,8 @@ describe("LoginScreen", () => {
   }
 
   it("prefills the saved username", () => {
-    render(<LoginScreen defaultUsername="rendi" onLogin={vi.fn()} />);
-    expect(screen.getByLabelText("Username")).toHaveValue("rendi");
+    render(<LoginScreen defaultUsername="rendy" onLogin={vi.fn()} />);
+    expect(screen.getByLabelText("Username")).toHaveValue("rendy");
   });
 
   it("shows the initial error from a failed auto-login", () => {
@@ -88,24 +88,24 @@ describe("LoginScreen", () => {
     render(<LoginScreen onLogin={vi.fn()} />);
     const button = screen.getByRole("button", { name: "Sign in" });
     expect(button).toBeDisabled();
-    fill("rendi", "secret");
+    fill("rendy", "secret");
     expect(button).not.toBeDisabled();
   });
 
   it("calls onLogin with trimmed username, password, and remember flag", async () => {
     const onLogin = vi.fn().mockResolvedValue(undefined);
     render(<LoginScreen onLogin={onLogin} />);
-    fill("  rendi  ", "secret");
+    fill("  rendy  ", "secret");
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() => {
-      expect(onLogin).toHaveBeenCalledWith("rendi", "secret", true);
+      expect(onLogin).toHaveBeenCalledWith("rendy", "secret", true);
     });
   });
 
   it("surfaces the backend error string and clears the password", async () => {
     const onLogin = vi.fn().mockRejectedValue("Invalid username or password.");
     render(<LoginScreen onLogin={onLogin} />);
-    fill("rendi", "wrong");
+    fill("rendy", "wrong");
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("Invalid username or password.");
@@ -116,11 +116,11 @@ describe("LoginScreen", () => {
   it("does not submit when remember is unchecked -> passes false", async () => {
     const onLogin = vi.fn().mockResolvedValue(undefined);
     render(<LoginScreen onLogin={onLogin} />);
-    fill("rendi", "secret");
+    fill("rendy", "secret");
     fireEvent.click(screen.getByLabelText("Remember me on this device"));
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() => {
-      expect(onLogin).toHaveBeenCalledWith("rendi", "secret", false);
+      expect(onLogin).toHaveBeenCalledWith("rendy", "secret", false);
     });
   });
 });

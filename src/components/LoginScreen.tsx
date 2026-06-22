@@ -68,7 +68,7 @@ function LoginScreen({ defaultUsername = "", initialError = "", onLogin }: Login
                 autoCapitalize="off"
                 autoCorrect="off"
                 spellCheck={false}
-                placeholder="e.g. rendi"
+                placeholder="e.g. rendy"
               />
             </FormField>
             <FormField

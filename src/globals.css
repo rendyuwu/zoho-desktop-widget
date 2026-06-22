@@ -8,3 +8,11 @@
   --font-sans: var(--font-pjs, "Plus Jakarta Sans", system-ui, sans-serif);
   --font-mono: var(--font-jbm, "JetBrains Mono", monospace);
 }
+
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}

@@ -1,14 +1,41 @@
-import { IconButton, Badge, Button } from "@gio/bigsu-ui";
+import { IconButton, Badge } from "@gio/bigsu-ui";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+
+export type DisplayMode = "all" | "waiting" | "total";
 
 interface WidgetHeaderProps {
   asapCount: number;
+  mode: DisplayMode;
+  onModeChange: (mode: DisplayMode) => void;
   onLogout: () => void;
 }
 
-function WidgetHeader({ asapCount, onLogout }: WidgetHeaderProps) {
+const MODE_LABEL: Record<DisplayMode, string> = {
+  all: "All",
+  waiting: "Waiting",
+  total: "Total",
+};
+
+const MODE_ORDER: DisplayMode[] = ["all", "waiting", "total"];
+
+function WidgetHeader({ asapCount, mode, onModeChange, onLogout }: WidgetHeaderProps) {
   const handleReconnect = () => {
     invoke("reconnect_ws");
+  };
+
+  const handleMinimize = () => {
+    void getCurrentWindow().minimize();
+  };
+
+  const handleClose = () => {
+    void getCurrentWindow().hide();
+  };
+
+  const cycleMode = () => {
+    const idx = MODE_ORDER.indexOf(mode);
+    const next = MODE_ORDER[(idx + 1) % MODE_ORDER.length];
+    onModeChange(next);
   };
 
   return (
@@ -23,6 +50,14 @@ function WidgetHeader({ asapCount, onLogout }: WidgetHeaderProps) {
         )}
       </div>
       <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={cycleMode}
+          className="rounded px-2 py-0.5 text-xs font-medium text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors"
+          aria-label={`Switch view mode, current: ${MODE_LABEL[mode]}`}
+        >
+          {MODE_LABEL[mode]}
+        </button>
         <IconButton
           icon="refresh"
           aria-label="Reconnect WebSocket"
@@ -30,9 +65,27 @@ function WidgetHeader({ asapCount, onLogout }: WidgetHeaderProps) {
           size="sm"
           onClick={handleReconnect}
         />
-        <Button variant="ghost" size="sm" onClick={onLogout}>
-          Sign out
-        </Button>
+        <IconButton
+          icon="collapse"
+          aria-label="Minimize widget"
+          variant="ghost"
+          size="sm"
+          onClick={handleMinimize}
+        />
+        <IconButton
+          icon="close"
+          aria-label="Close widget to tray"
+          variant="ghost"
+          size="sm"
+          onClick={handleClose}
+        />
+        <IconButton
+          icon="externalLink"
+          aria-label="Sign out"
+          variant="ghost"
+          size="sm"
+          onClick={onLogout}
+        />
       </div>
     </header>
   );
