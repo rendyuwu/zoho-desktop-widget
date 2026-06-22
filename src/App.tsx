@@ -5,7 +5,7 @@ import LoadingState from "./components/LoadingState";
 import useAuth from "./hooks/useAuth";
 
 function App() {
-  const { status, savedUsername, initialError, login, logout } = useAuth();
+  const { status, savedUsername, initialError, login } = useAuth();
 
   if (status === "checking") {
     return (
@@ -28,7 +28,7 @@ function App() {
     );
   }
 
-  return <Widget onLogout={logout} />;
+  return <Widget />;
 }
 
 export default App;

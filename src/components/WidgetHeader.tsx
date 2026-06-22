@@ -1,4 +1,4 @@
-import { IconButton, Badge } from "@gio/bigsu-ui";
+import { IconButton, Badge, bigsuToast } from "@gio/bigsu-ui";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
@@ -8,7 +8,6 @@ interface WidgetHeaderProps {
   asapCount: number;
   mode: DisplayMode;
   onModeChange: (mode: DisplayMode) => void;
-  onLogout: () => void;
 }
 
 const MODE_LABEL: Record<DisplayMode, string> = {
@@ -19,13 +18,14 @@ const MODE_LABEL: Record<DisplayMode, string> = {
 
 const MODE_ORDER: DisplayMode[] = ["all", "waiting", "total"];
 
-function WidgetHeader({ asapCount, mode, onModeChange, onLogout }: WidgetHeaderProps) {
-  const handleReconnect = () => {
-    invoke("reconnect_ws");
-  };
-
-  const handleMinimize = () => {
-    void getCurrentWindow().minimize();
+function WidgetHeader({ asapCount, mode, onModeChange }: WidgetHeaderProps) {
+  const handleReconnect = async () => {
+    try {
+      await invoke("reconnect_ws");
+      bigsuToast.success("WebSocket reconnected");
+    } catch {
+      bigsuToast.danger("Reconnect failed");
+    }
   };
 
   const handleClose = () => {
@@ -66,25 +66,11 @@ function WidgetHeader({ asapCount, mode, onModeChange, onLogout }: WidgetHeaderP
           onClick={handleReconnect}
         />
         <IconButton
-          icon="collapse"
-          aria-label="Minimize widget"
-          variant="ghost"
-          size="sm"
-          onClick={handleMinimize}
-        />
-        <IconButton
           icon="close"
           aria-label="Close widget to tray"
           variant="ghost"
           size="sm"
           onClick={handleClose}
-        />
-        <IconButton
-          icon="externalLink"
-          aria-label="Sign out"
-          variant="ghost"
-          size="sm"
-          onClick={onLogout}
         />
       </div>
     </header>

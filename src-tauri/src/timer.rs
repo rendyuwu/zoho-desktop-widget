@@ -48,6 +48,15 @@ pub fn fire_asap_notification(app: &AppHandle, id_ticket: &str, department: &str
         .show();
 }
 
+pub fn fire_new_ticket_notification(app: &AppHandle, id_ticket: &str, department: &str, subject: &str) {
+    let title = format!("New ticket #{}", id_ticket);
+    let body = format!("[{}] {}", department, truncate(subject, 60));
+    let _ = app.notification().builder()
+        .title(&title)
+        .body(&body)
+        .show();
+}
+
 fn truncate(s: &str, max: usize) -> &str {
     if s.chars().count() <= max {
         return s;
@@ -105,6 +114,13 @@ pub async fn run_timer(app: AppHandle) {
                         );
                     }
                 }
+            } else {
+                fire_new_ticket_notification(
+                    &app,
+                    &ticket.id_ticket,
+                    &ticket.department,
+                    &ticket.subject,
+                );
             }
 
             prev_categories.insert(ticket.id_ticket.clone(), current);
@@ -299,5 +315,27 @@ mod tests {
                 assert_eq!(fires, should_fire, "from={:?} to={:?}", from, to);
             }
         }
+    }
+
+    #[test]
+    fn test_new_ticket_notification_title_format() {
+        let title = format!("New ticket #{}", "T001");
+        assert!(title.starts_with("New ticket #"));
+        assert!(title.contains("T001"));
+    }
+
+    #[test]
+    fn test_new_ticket_notification_body_format() {
+        let body = format!("[{}] {}", "Support", truncate("Login issue", 60));
+        assert!(body.starts_with("[Support] "));
+        assert!(body.contains("Login issue"));
+    }
+
+    #[test]
+    fn test_new_ticket_notification_body_truncates_subject() {
+        let long_subject = "a".repeat(100);
+        let body = format!("[{}] {}", "Dept", truncate(&long_subject, 60));
+        let body_after_bracket = body.strip_prefix("[Dept] ").unwrap();
+        assert_eq!(body_after_bracket.chars().count(), 60);
     }
 }

@@ -11,11 +11,7 @@ import WaitingList from "./WaitingList";
 import useTicketEvents from "../hooks/useTicketEvents";
 import { classifyTicket } from "../constants";
 
-interface WidgetProps {
-  onLogout: () => void;
-}
-
-function Widget({ onLogout }: WidgetProps) {
+function Widget() {
   const { data, loading, error, tick } = useTicketEvents();
   const [mode, setMode] = useState<DisplayMode>("all");
 
@@ -32,7 +28,7 @@ function Widget({ onLogout }: WidgetProps) {
     <div className="flex h-screen flex-col bg-app text-text-primary">
       <Toaster />
       <UpdateBanner />
-      <WidgetHeader asapCount={asapCount} mode={mode} onModeChange={setMode} onLogout={onLogout} />
+      <WidgetHeader asapCount={asapCount} mode={mode} onModeChange={setMode} />
       {showCounts && <CountGrid data={data} loading={loading} />}
       {loading && <LoadingState />}
       {error && !data && <ErrorTicketState />}
