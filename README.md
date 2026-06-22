@@ -28,7 +28,7 @@ Compact 360px sidebar widget that stays on top of your desktop. Streams live tic
 
 > **Note:** Auto-update infrastructure (signing key, updater plugin) is configured. Update check logic (T26), install command (T27), release CI (T29), and UpdateBanner UI (T30) are pending. Build from source for now.
 
-Pre-built binaries will be available from [GitHub Releases](https://github.com/simondayce/zoho-desktop-widget/releases) once release CI is set up.
+Pre-built binaries will be available from [GitHub Releases](https://github.com/rendyuwu/zoho-desktop-widget/releases) once release CI is set up.
 
 - **Linux**: `.AppImage` or `.deb`
 - **Windows**: `.msi` or `.exe` (NSIS)
@@ -52,7 +52,7 @@ See [Build](#build) below.
 ### Steps
 
 ```bash
-git clone https://github.com/simondayce/zoho-desktop-widget.git
+git clone https://github.com/rendyuwu/zoho-desktop-widget.git
 cd zoho-desktop-widget
 npm install
 ZOHO_WS_URL="wss://your-domain.com/zoho/wss" npm run tauri dev

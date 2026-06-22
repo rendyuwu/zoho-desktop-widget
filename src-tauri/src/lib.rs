@@ -102,7 +102,7 @@ mod tests {
             "V13: updater endpoint must be HTTPS — unsigned/MITM risk"
         );
         assert!(
-            url.contains("github.com/simondayce/zoho-desktop-widget/releases"),
+            url.contains("github.com/rendyuwu/zoho-desktop-widget/releases"),
             "I.updater: endpoint must point to GitHub releases"
         );
         assert!(

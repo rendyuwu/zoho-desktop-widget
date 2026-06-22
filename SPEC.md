@@ -32,7 +32,7 @@ Tauri v2 always-on-top desktop widget. Stream Zoho ticket counts + ASAP/Waiting 
 - tray: click → toggle window visibility. Icon shows ASAP count badge.
 - notify: native OS notification when ticket crosses to ASAP (≥900s).
 - file: `~/.config/zoho-widget/store.json` (window position, notification prefs).
-- updater: `tauri-plugin-updater` → check GitHub releases `latest.json`. Endpoint: `https://github.com/simondayce/zoho-desktop-widget/releases/latest/download/latest.json`.
+- updater: `tauri-plugin-updater` → check GitHub releases `latest.json`. Endpoint: `https://github.com/rendyuwu/zoho-desktop-widget/releases/latest/download/latest.json`.
 - tauri-cmd: `check_for_updates()` → check updater endpoint. Returns `{ available: bool, version?: string, body?: string }`.
 - tauri-cmd: `install_update()` → download + verify sig + install. Returns `{ success: bool, error?: string }`.
 - tauri-event: `update-available` → frontend. Payload: `{ version, body }`.

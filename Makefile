@@ -28,7 +28,7 @@ SHELL := bash
 .DEFAULT_GOAL := help
 
 # ---- config (override on the CLI: make release VERSION=v1.2.3) ----
-REPO     ?= simondayce/zoho-desktop-widget
+REPO     ?= rendyuwu/zoho-desktop-widget
 VERSION  ?= v$(shell node -p "require('./package.json').version")
 SIGN_KEY ?= $(CURDIR)/src-tauri/keys/update.key
 
