@@ -57,8 +57,8 @@ help: ## Show this help
 .PHONY: check-key
 check-key: ## Verify signing key + password are present
 	@test -f "$(SIGN_KEY)" || { echo "missing signing key: $(SIGN_KEY)"; exit 1; }
-	test -n "$${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" \
-	  || { echo "set TAURI_SIGNING_PRIVATE_KEY_PASSWORD in env"; exit 1; }
+	test -n "$${TAURI_SIGNING_PRIVATE_KEY_PASSWORD+set}" \
+	  || { echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD must be defined (use empty string for a passwordless key)"; exit 1; }
 
 .PHONY: install
 install: ## npm ci (must be on LAN to reach @gio bigsu registry)
