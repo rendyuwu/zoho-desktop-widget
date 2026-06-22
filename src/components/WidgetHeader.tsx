@@ -31,12 +31,6 @@ function WidgetHeader({ asapCount, mode, onModeChange }: WidgetHeaderProps) {
     void getCurrentWindow().hide();
   };
 
-  const cycleMode = () => {
-    const idx = MODE_ORDER.indexOf(mode);
-    const next = MODE_ORDER[(idx + 1) % MODE_ORDER.length];
-    onModeChange(next);
-  };
-
   return (
     <header
       className="flex items-center justify-between border-b border-border-default px-3 py-2"
@@ -49,14 +43,29 @@ function WidgetHeader({ asapCount, mode, onModeChange }: WidgetHeaderProps) {
         )}
       </div>
       <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={cycleMode}
-          className="rounded px-2 py-0.5 text-xs font-medium text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors"
-          aria-label={`Switch view mode, current: ${MODE_LABEL[mode]}`}
+        <div
+          role="tablist"
+          aria-label="View mode"
+          className="flex items-center rounded-md bg-surface p-0.5"
         >
-          {MODE_LABEL[mode]}
-        </button>
+          {MODE_ORDER.map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => onModeChange(m)}
+              className={
+                "rounded px-2 py-0.5 text-xs font-medium transition-colors " +
+                (mode === m
+                  ? "bg-brand-soft text-text-primary"
+                  : "text-text-muted hover:text-text-primary")
+              }
+            >
+              {MODE_LABEL[m]}
+            </button>
+          ))}
+        </div>
         <IconButton
           icon="refresh"
           aria-label="Reconnect WebSocket"
