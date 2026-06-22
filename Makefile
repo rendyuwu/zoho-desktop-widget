@@ -98,6 +98,7 @@ release: build ## Build host artifacts, then create/append draft GitHub release
 	fi; \
 	files=$$(find "$$base" \
 	  \( -name '*.AppImage' -o -name '*.AppImage.sig' \
+	   -o -name '*.deb' -o -name '*.rpm' \
 	   -o -name '*-setup.exe' -o -name '*-setup.exe.sig' \
 	   -o -name '*.msi' -o -name '*.msi.sig' \
 	   -o -name '*.app.tar.gz' -o -name '*.app.tar.gz.sig' \
