@@ -64,7 +64,7 @@ T14|x|build WaitingList: warning Badge (10-15min) + info Badge (<10min), scrolla
 T15|x|build useTicketEvents hook: listen ticket-data + ticket-move events|I.tauri-event
 T16|x|impl EmptyState: "No tickets waiting" when list empty|-
 T17|x|impl LoadingSkeleton: initial load state|-
-T18|.|impl window position persistence via tauri-plugin-store|I.file
+T18|x|impl window position persistence via tauri-plugin-store|I.file
 T19|.|test cross-platform: Linux, Windows, macOS window flags|V5
 T20|.|test WS auto-reconnect: kill server → verify backoff reconnect|V2
 T21|.|test timer threshold: simulate 600s/900s elapsed → verify ticket-move|V4
