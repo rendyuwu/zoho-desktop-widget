@@ -93,7 +93,7 @@ T25|x|add tauri-plugin-updater to Cargo.toml + configure updater endpoint in tau
 T26|x|impl Rust update check: check_for_updates() cmd, fire update-available event on launch|V12,V15,I.tauri-cmd,I.tauri-event
 T27|x|impl Rust install_update() cmd: download, verify sig, install, relaunch|V13,V15,I.tauri-cmd
 T28|x|generate Tauri signing key pair. Store private key as GitHub secret `TAURI_SIGNING_PRIVATE_KEY`|V13,I.env
-T29|.|create .github/workflows/release.yml: tag v* → cross-platform build, draft release, upload .sig + latest.json|V16,V17,I.ci
+T29|x|create .github/workflows/release.yml: tag v* → cross-platform build, draft release, upload .sig + latest.json|V16,V17,I.ci
 T30|x|impl UpdateBanner component: toast + inline banner. "Update available — v{version}". Buttons: "Update & Restart" / "Later"|V14
 T31|x|impl update error handling: check/install failure → log, continue. ⊥ crash|V15
 T32|.|test update flow: publish draft release → verify app detects update → install → relaunch|V12,V13,V16
