@@ -19,13 +19,12 @@ const MODE_LABEL: Record<DisplayMode, string> = {
 const MODE_ORDER: DisplayMode[] = ["all", "waiting", "total"];
 
 function WidgetHeader({ asapCount, mode, onModeChange }: WidgetHeaderProps) {
-  const handleReconnect = async () => {
-    try {
-      await invoke("reconnect_ws");
-      bigsuToast.success("WebSocket reconnected");
-    } catch {
+  const handleReconnect = () => {
+    invoke("reconnect_ws").then(() => {
+      bigsuToast.info("Reconnecting…");
+    }).catch(() => {
       bigsuToast.danger("Reconnect failed");
-    }
+    });
   };
 
   const handleClose = () => {

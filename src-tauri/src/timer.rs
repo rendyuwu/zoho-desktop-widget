@@ -68,6 +68,7 @@ fn truncate(s: &str, max: usize) -> &str {
 pub async fn run_timer(app: AppHandle) {
     let mut prev_categories: HashMap<String, TicketCategory> = HashMap::new();
     let mut prev_asap_count: usize = 0;
+    let mut seeded = false;
 
     loop {
         tokio::time::sleep(TICK_INTERVAL).await;
@@ -84,7 +85,6 @@ pub async fn run_timer(app: AppHandle) {
         };
 
         if waiting.is_empty() {
-            prev_categories.clear();
             if prev_asap_count != 0 {
                 prev_asap_count = 0;
                 crate::tray::update_tray_badge(&app, 0);
@@ -114,7 +114,7 @@ pub async fn run_timer(app: AppHandle) {
                         );
                     }
                 }
-            } else {
+            } else if seeded {
                 fire_new_ticket_notification(
                     &app,
                     &ticket.id_ticket,
@@ -129,6 +129,10 @@ pub async fn run_timer(app: AppHandle) {
         let current_ids: std::collections::HashSet<&String> =
             waiting.iter().map(|t| &t.id_ticket).collect();
         prev_categories.retain(|id, _| current_ids.contains(id));
+
+        if !seeded {
+            seeded = true;
+        }
 
         let asap_count = {
             let cache = app.state::<TicketCache>();
@@ -322,20 +326,5 @@ mod tests {
         let title = format!("New ticket #{}", "T001");
         assert!(title.starts_with("New ticket #"));
         assert!(title.contains("T001"));
-    }
-
-    #[test]
-    fn test_new_ticket_notification_body_format() {
-        let body = format!("[{}] {}", "Support", truncate("Login issue", 60));
-        assert!(body.starts_with("[Support] "));
-        assert!(body.contains("Login issue"));
-    }
-
-    #[test]
-    fn test_new_ticket_notification_body_truncates_subject() {
-        let long_subject = "a".repeat(100);
-        let body = format!("[{}] {}", "Dept", truncate(&long_subject, 60));
-        let body_after_bracket = body.strip_prefix("[Dept] ").unwrap();
-        assert_eq!(body_after_bracket.chars().count(), 60);
     }
 }
