@@ -4,6 +4,7 @@ use tauri::{Manager, WindowEvent};
 
 mod timer;
 mod tray;
+mod updater;
 mod window_state;
 mod ws;
 
@@ -223,6 +224,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             ws::get_current_tickets,
             ws::reconnect_ws,
+            updater::check_for_updates,
+            updater::install_update,
         ])
         .on_window_event(|window, event| {
             match event {
@@ -253,6 +256,10 @@ pub fn run() {
             let handle2 = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 timer::run_timer(handle2).await;
+            });
+            let update_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                updater::run_update_check_on_launch(update_handle).await;
             });
             Ok(())
         })
