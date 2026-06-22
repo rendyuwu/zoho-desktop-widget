@@ -35,6 +35,14 @@ SIGN_KEY ?= $(CURDIR)/src-tauri/keys/update.key
 # Tauri reads a file path or the raw key from this var.
 export TAURI_SIGNING_PRIVATE_KEY := $(SIGN_KEY)
 
+# Auto-load gitignored local build secrets if present:
+#   ZOHO_WS_URL=wss://...                      (baked into binary)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD=        (empty for a passwordless key)
+# Anything exported in the shell still wins.
+-include .env.local
+export ZOHO_WS_URL
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+
 # ---- host OS detection ----
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
