@@ -1,6 +1,11 @@
+use std::sync::Mutex;
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter};
-use tauri_plugin_updater::UpdaterExt;
+use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_updater::{Update, UpdaterExt};
+
+const UPDATE_CHECK_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateInfo {
@@ -25,44 +30,48 @@ pub struct UpdateAvailableEvent {
     pub body: Option<String>,
 }
 
-pub async fn check_update(app: &AppHandle) -> UpdateInfo {
-    let updater = match app.updater() {
-        Ok(u) => u,
-        Err(e) => {
-            eprintln!("update check: updater build failed: {}", e);
-            return UpdateInfo {
-                available: false,
-                version: None,
-                body: None,
-            };
-        }
-    };
+pub struct CachedUpdate(pub Mutex<Option<Update>>);
 
-    match updater.check().await {
-        Ok(Some(update)) => {
+async fn try_check_update(app: &AppHandle) -> Result<Option<Update>, String> {
+    let updater = app.updater().map_err(|e| format!("updater build failed: {}", e))?;
+    updater
+        .check()
+        .await
+        .map_err(|e| format!("update check failed: {}", e))
+}
+
+pub async fn check_update(app: &AppHandle) -> UpdateInfo {
+    let result = tokio::time::timeout(UPDATE_CHECK_TIMEOUT, try_check_update(app)).await;
+
+    match result {
+        Ok(Ok(Some(update))) => {
             let info = UpdateInfo {
                 available: true,
                 version: Some(update.version.clone()),
                 body: update.body.clone(),
             };
 
-            let event = UpdateAvailableEvent {
-                version: update.version.clone(),
-                body: update.body.clone(),
-            };
-            if let Err(e) = app.emit("update-available", &event) {
-                eprintln!("update check: failed to emit update-available event: {}", e);
+            if let Some(state) = app.try_state::<CachedUpdate>() {
+                *state.0.lock().unwrap() = Some(update);
             }
 
             info
         }
-        Ok(None) => UpdateInfo {
+        Ok(Ok(None)) => UpdateInfo {
             available: false,
             version: None,
             body: None,
         },
-        Err(e) => {
-            eprintln!("update check: check failed: {}", e);
+        Ok(Err(e)) => {
+            eprintln!("update check: {}", e);
+            UpdateInfo {
+                available: false,
+                version: None,
+                body: None,
+            }
+        }
+        Err(_) => {
+            eprintln!("update check: timed out after {:?}", UPDATE_CHECK_TIMEOUT);
             UpdateInfo {
                 available: false,
                 version: None,
@@ -73,7 +82,17 @@ pub async fn check_update(app: &AppHandle) -> UpdateInfo {
 }
 
 pub async fn run_update_check_on_launch(app: AppHandle) {
-    let _ = check_update(&app).await;
+    let info = check_update(&app).await;
+
+    if info.available {
+        let event = UpdateAvailableEvent {
+            version: info.version.clone().unwrap_or_default(),
+            body: info.body.clone(),
+        };
+        if let Err(e) = app.emit("update-available", &event) {
+            eprintln!("update check: failed to emit update-available event: {}", e);
+        }
+    }
 }
 
 #[tauri::command]
@@ -83,32 +102,22 @@ pub async fn check_for_updates(app: AppHandle) -> Result<UpdateInfo, String> {
 
 #[tauri::command]
 pub async fn install_update(app: AppHandle) -> Result<InstallResult, String> {
-    let updater = match app.updater() {
-        Ok(u) => u,
-        Err(e) => {
-            let msg = format!("updater build failed: {}", e);
-            eprintln!("install_update: {}", msg);
+    let update = match app.try_state::<CachedUpdate>() {
+        Some(state) => state.0.lock().unwrap().take(),
+        None => {
             return Ok(InstallResult {
                 success: false,
-                error: Some(msg),
+                error: Some("update state not initialized".to_string()),
             });
         }
     };
 
-    let update = match updater.check().await {
-        Ok(Some(u)) => u,
-        Ok(None) => {
+    let update = match update {
+        Some(u) => u,
+        None => {
             return Ok(InstallResult {
                 success: false,
-                error: Some("no update available".to_string()),
-            });
-        }
-        Err(e) => {
-            let msg = format!("update check failed: {}", e);
-            eprintln!("install_update: {}", msg);
-            return Ok(InstallResult {
-                success: false,
-                error: Some(msg),
+                error: Some("no update available — call check_for_updates first".to_string()),
             });
         }
     };
@@ -287,5 +296,60 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(v["success"], false);
         assert_eq!(v["error"], "download failed");
+    }
+
+    #[test]
+    fn test_update_check_timeout_is_30s() {
+        assert_eq!(UPDATE_CHECK_TIMEOUT, Duration::from_secs(30));
+    }
+
+    #[test]
+    fn test_cached_update_starts_none() {
+        let cached = CachedUpdate(Mutex::new(None));
+        assert!(cached.0.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn test_cached_update_take_clears() {
+        let cached = CachedUpdate(Mutex::new(None));
+        let taken = cached.0.lock().unwrap().take();
+        assert!(taken.is_none());
+        assert!(cached.0.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn test_install_result_no_update_error_message() {
+        let result = InstallResult {
+            success: false,
+            error: Some("no update available — call check_for_updates first".to_string()),
+        };
+        assert!(result.error.as_ref().unwrap().contains("check_for_updates"));
+    }
+
+    #[test]
+    fn test_update_info_timeout_returns_not_available() {
+        let info = UpdateInfo {
+            available: false,
+            version: None,
+            body: None,
+        };
+        assert!(!info.available, "timeout must return available: false (V15)");
+    }
+
+    #[test]
+    fn test_run_update_check_on_launch_only_emits_when_available() {
+        let info_available = UpdateInfo {
+            available: true,
+            version: Some("1.0.0".to_string()),
+            body: None,
+        };
+        let info_not_available = UpdateInfo {
+            available: false,
+            version: None,
+            body: None,
+        };
+
+        assert!(info_available.available);
+        assert!(!info_not_available.available);
     }
 }

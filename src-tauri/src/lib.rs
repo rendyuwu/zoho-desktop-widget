@@ -221,6 +221,7 @@ pub fn run() {
             aot_item: Mutex::new(None),
         })
         .manage(ws::ReconnectSignal(tokio::sync::Notify::new()))
+        .manage(updater::CachedUpdate(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             ws::get_current_tickets,
             ws::reconnect_ws,
