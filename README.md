@@ -2,8 +2,6 @@
 
 Always-on-top desktop widget streaming Zoho ticket data via WebSocket. Built with Tauri v2 (Rust backend + React frontend). BIGSU UI components.
 
-<!-- TODO: Add screenshot after all features implemented (T25-T32) -->
-<!-- ![Screenshot](docs/screenshot.png) -->
 
 ## Overview
 
