@@ -1,3 +1,4 @@
+import UpdateBanner from "./components/UpdateBanner";
 import WidgetHeader from "./components/WidgetHeader";
 import CountGrid from "./components/CountGrid";
 import EmptyTicketState from "./components/EmptyTicketState";
@@ -19,6 +20,7 @@ function App() {
 
   return (
     <div className="flex h-screen flex-col bg-app text-text-primary">
+      <UpdateBanner />
       <WidgetHeader asapCount={asapCount} />
       <CountGrid data={data} loading={loading} />
       {loading && <LoadingState />}
