@@ -88,7 +88,7 @@ T20|x|test WS auto-reconnect: kill server → verify backoff reconnect|V2
 T21|x|test timer threshold: simulate 600s/900s elapsed → verify ticket-move|V4
 T22|x|test notification: ticket crosses 900s → verify native notify fired|V3
 T23|x|write README.md: overview, screenshots, install, dev setup, build, env vars, troubleshooting|I.docs
-T24|.|write CHANGELOG.md: initial v0.1.0 entry|I.docs
+T24|x|write CHANGELOG.md: initial v0.1.0 entry|I.docs
 T25|.|add tauri-plugin-updater to Cargo.toml + configure updater endpoint in tauri.conf.json|V12,V13,I.updater
 T26|.|impl Rust update check: check_for_updates() cmd, fire update-available event on launch|V12,V15,I.tauri-cmd,I.tauri-event
 T27|.|impl Rust install_update() cmd: download, verify sig, install, relaunch|V13,V15,I.tauri-cmd
