@@ -57,7 +57,7 @@ T7|x|impl system tray: toggle window, ASAP count badge|V5,I.tray
 T8|x|impl tauri commands: get_current_tickets, reconnect_ws|I.tauri-cmd
 T9|x|WS endpoint hardcoded. No token needed.|V6
 T10|x|build WidgetHeader component (compact, custom, no AppShell)|V11
-T11|.|build CountGrid: MetricCards for GIO Open/OnProgress/OnHold + OnHold Abuse/Incident/Sales|V8,I.ws
+T11|x|build CountGrid: MetricCards for GIO Open/OnProgress/OnHold + OnHold Abuse/Incident/Sales|V8,I.ws
 T12|x|build TicketCard: id, dept Badge, subject, elapsed, urgency Badge|V9,V10
 T13|x|build AsapList: danger Badge tickets, scrollable|V9,V10
 T14|x|build WaitingList: warning Badge (10-15min) + info Badge (<10min), scrollable|V9,V10

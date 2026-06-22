@@ -1,4 +1,5 @@
 import WidgetHeader from "./components/WidgetHeader";
+import CountGrid from "./components/CountGrid";
 import EmptyTicketState from "./components/EmptyTicketState";
 import LoadingState from "./components/LoadingState";
 import ErrorTicketState from "./components/ErrorTicketState";
@@ -19,6 +20,7 @@ function App() {
   return (
     <div className="flex h-screen flex-col bg-app text-text-primary">
       <WidgetHeader asapCount={asapCount} />
+      <CountGrid data={data} loading={loading} />
       {loading && <LoadingState />}
       {error && !data && <ErrorTicketState />}
       {showEmpty && <EmptyTicketState />}
