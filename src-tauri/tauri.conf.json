@@ -33,11 +33,20 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.png"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEY2Nzk3N0JDQjgxMDc2NzIKUldSeWRoQzR2SGQ1OXE1S1FDU21FY3puV0xTS3hYRk5TeXFVYzdBOTZPZC9uTkJ1bFVyMUM4TDAK",
+      "endpoints": [
+        "https://github.com/simondayce/zoho-desktop-widget/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

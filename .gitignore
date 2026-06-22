@@ -25,5 +25,8 @@ Thumbs.db
 .env
 .env.local
 
+# Tauri signing private key (keep .pub tracked)
+src-tauri/keys/update.key
+
 # Logs
 *.log

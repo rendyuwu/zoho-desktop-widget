@@ -87,6 +87,100 @@ mod tests {
         let win = main_window();
         assert_eq!(win["label"].as_str(), Some("main"));
     }
+
+    #[test]
+    fn test_updater_endpoints_configured() {
+        let conf = load_tauri_conf();
+        let endpoints = conf["plugins"]["updater"]["endpoints"]
+            .as_array()
+            .expect("updater endpoints must be array");
+        assert!(!endpoints.is_empty(), "V12: at least one endpoint required");
+        let url = endpoints[0].as_str().expect("endpoint must be string");
+        assert!(
+            url.contains("github.com/simondayce/zoho-desktop-widget/releases"),
+            "I.updater: endpoint must point to GitHub releases"
+        );
+        assert!(
+            url.ends_with("/latest.json"),
+            "I.updater: endpoint must serve latest.json"
+        );
+    }
+
+    #[test]
+    fn test_create_updater_artifacts_true() {
+        let conf = load_tauri_conf();
+        assert_eq!(
+            conf["bundle"]["createUpdaterArtifacts"].as_bool(),
+            Some(true),
+            "V13: createUpdaterArtifacts must be true for signed update artifacts"
+        );
+    }
+
+    #[test]
+    fn test_updater_pubkey_exists() {
+        let conf = load_tauri_conf();
+        let pubkey = conf["plugins"]["updater"]["pubkey"]
+            .as_str()
+            .expect("pubkey must exist");
+        assert!(!pubkey.is_empty(), "V13: pubkey must not be empty — unsigned updates forbidden");
+    }
+
+    #[test]
+    fn test_updater_pubkey_is_valid_minisign_format() {
+        let conf = load_tauri_conf();
+        let pubkey = conf["plugins"]["updater"]["pubkey"]
+            .as_str()
+            .expect("pubkey must exist");
+        let decoded = base64_decode(pubkey);
+        let decoded_str = String::from_utf8(decoded).unwrap_or_default();
+        assert!(
+            decoded_str.starts_with("untrusted comment:"),
+            "V13: pubkey must be valid minisign public key (base64 of 'untrusted comment: ...')"
+        );
+    }
+
+    #[test]
+    fn test_private_key_not_tracked_in_git() {
+        let key_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("keys")
+            .join("update.key");
+        if key_path.exists() {
+            let output = std::process::Command::new("git")
+                .args(["check-ignore", key_path.to_str().unwrap()])
+                .current_dir(env!("CARGO_MANIFEST_DIR"))
+                .output();
+            if let Ok(out) = output {
+                assert!(
+                    out.status.success(),
+                    "V13: private key must be gitignored — found tracked at {:?}",
+                    key_path
+                );
+            }
+        }
+    }
+
+    fn base64_decode(s: &str) -> Vec<u8> {
+        const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        let s: String = s.chars().filter(|c| !c.is_whitespace()).collect();
+        let mut result = Vec::new();
+        let mut buffer = 0u32;
+        let mut bits = 0;
+        for c in s.bytes() {
+            if c == b'=' {
+                continue;
+            }
+            if let Some(pos) = CHARS.iter().position(|&x| x == c) {
+                buffer = (buffer << 6) | pos as u32;
+                bits += 6;
+                if bits >= 8 {
+                    bits -= 8;
+                    result.push((buffer >> bits) as u8);
+                    buffer &= (1 << bits) - 1;
+                }
+            }
+        }
+        result
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
