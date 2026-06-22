@@ -118,7 +118,7 @@ fn handle_message(app: &AppHandle, text: &str) {
             let _ = app.emit("ticket-data", &msg.data);
         }
         Err(e) => {
-            eprintln!("JSON parse error: {} | raw: {}...", e, &text[..text.len().min(100)]);
+            eprintln!("JSON parse error: {} | raw: {}...", e, text.chars().take(100).collect::<String>());
         }
     }
 }

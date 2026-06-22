@@ -84,6 +84,7 @@ pub async fn run_timer(app: AppHandle) {
         };
 
         if waiting.is_empty() {
+            prev_categories.clear();
             continue;
         }
 
@@ -113,6 +114,10 @@ pub async fn run_timer(app: AppHandle) {
 
             prev_categories.insert(ticket.id_ticket.clone(), current);
         }
+
+        let current_ids: std::collections::HashSet<&String> =
+            waiting.iter().map(|t| &t.id_ticket).collect();
+        prev_categories.retain(|id, _| current_ids.contains(id));
     }
 }
 
