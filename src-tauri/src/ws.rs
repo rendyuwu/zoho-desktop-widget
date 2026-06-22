@@ -7,7 +7,7 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 use crate::TicketCache;
 
-const WS_URL: &str = "wss://your-domain.com/zoho/wss";
+const WS_URL: &str = env!("ZOHO_WS_URL");
 const BACKOFF_SEQUENCE: &[u64] = &[1, 2, 5, 10, 30];
 
 pub struct ReconnectSignal(pub Notify);
@@ -61,7 +61,7 @@ pub async fn run_ws_client(app: AppHandle) {
     let reconnect_notify = app.state::<ReconnectSignal>();
 
     loop {
-        eprintln!("WS connecting to {}", WS_URL);
+        eprintln!("WS connecting");
 
         match connect_async(WS_URL).await {
             Ok((ws_stream, _response)) => {
@@ -329,7 +329,13 @@ mod tests {
     }
 
     #[test]
-    fn test_ws_url_hardcoded() {
-        assert_eq!(WS_URL, "wss://your-domain.com/zoho/wss");
+    fn test_ws_url_resolves() {
+        // ZOHO_WS_URL env var baked at compile time via env!. No fallback.
+        assert!(
+            WS_URL.starts_with("wss://") || WS_URL.starts_with("ws://"),
+            "WS_URL must be valid ws/wss URL, got: {}",
+            WS_URL
+        );
+        assert!(!WS_URL.is_empty(), "WS_URL must not be empty");
     }
 }

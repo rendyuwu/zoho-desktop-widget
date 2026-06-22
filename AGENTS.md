@@ -31,7 +31,7 @@ Ref ! binding. ∃ better Rust-native approach → use it. Match behavior, not i
 
 ## Env
 
-- `ZOHO_WS_TOKEN` — desktop token, no expiry. Required. ⊥ hardcoded.
+- `ZOHO_WS_URL` — WS endpoint, baked at compile time via `env!`. GitHub secret in CI. No fallback — build fails if unset.
 
 ## Key invariants (from §V)
 

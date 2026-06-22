@@ -57,8 +57,10 @@ See [Build](#build) below.
 git clone https://github.com/simondayce/zoho-desktop-widget.git
 cd zoho-desktop-widget
 npm install
-npm run tauri dev
+ZOHO_WS_URL="wss://your-domain.com/zoho/wss" npm run tauri dev
 ```
+
+> `ZOHO_WS_URL` is required at compile time. See [Environment variables](#environment-variables).
 
 Dev server runs at `http://localhost:1420`. Tauri window opens automatically.
 
@@ -72,7 +74,7 @@ Output in `src-tauri/target/release/bundle/`.
 
 ### Build prerequisites
 
-Same as [Dev setup](#dev-setup) prerequisites. No additional env vars needed for local build.
+Same as [Dev setup](#dev-setup) prerequisites. `ZOHO_WS_URL` env var must be set for local build.
 
 ## Environment variables
 
@@ -80,8 +82,13 @@ Same as [Dev setup](#dev-setup) prerequisites. No additional env vars needed for
 |---|---|---|
 | `TAURI_SIGNING_PRIVATE_KEY` | Release CI only | Tauri signing key for auto-update `.sig` files. Copy contents of `src-tauri/keys/update.key` into this GitHub secret. |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Not required | Key generated without password. Omit this env var in CI. |
+| `ZOHO_WS_URL` | Required | WebSocket endpoint URL. Baked into binary at compile time via Rust `env!`. Set as GitHub secret to avoid exposing domain in source. No fallback — build fails if unset. |
 
-**No env vars required for dev or local build.** WebSocket endpoint is hardcoded (`wss://your-domain.com/zoho/wss`), no auth token needed.
+**Dev/local build:** `ZOHO_WS_URL` must be set before building:
+
+```bash
+ZOHO_WS_URL="wss://your-domain.com/zoho/wss" npm run tauri dev
+```
 
 ### GitHub secret setup (release CI)
 
@@ -89,6 +96,7 @@ Same as [Dev setup](#dev-setup) prerequisites. No additional env vars needed for
 2. Go to repo Settings → Secrets and variables → Actions → New repository secret
 3. Name: `TAURI_SIGNING_PRIVATE_KEY`, value: paste private key content
 4. No password secret needed — key was generated without encryption
+5. Create another secret: Name: `ZOHO_WS_URL`, value: your WS endpoint (e.g. `wss://your-domain.com/zoho/wss`)
 
 ## Architecture
 
@@ -110,7 +118,7 @@ src/
 
 ### Data flow
 
-1. Rust WS client connects to `wss://your-domain.com/zoho/wss`
+1. Rust WS client connects to endpoint from `ZOHO_WS_URL` (baked at compile time)
 2. Server pushes JSON: `{ data: { total_ticket, onhold_ticket, waiting_response } }`
 3. Rust parses, caches, emits `ticket-data` event to frontend
 4. Rust 3s timer evaluates elapsed time per waiting ticket, emits `ticket-move` on category change
@@ -125,7 +133,7 @@ WS auto-reconnects on disconnect. Backoff sequence: 1s, 2s, 5s, 10s, 30s (cap).
 
 ### Widget not connecting / no data
 
-- Check network connectivity to `wss://your-domain.com`
+- Check network connectivity to your WS endpoint (configured via `ZOHO_WS_URL`)
 - Check stderr logs for WS errors (`WS connect failed`, `WS error`)
 - Widget auto-reconnects with backoff — wait 30s max
 - Use tray menu → Quit, then relaunch

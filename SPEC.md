@@ -11,7 +11,7 @@ Tauri v2 always-on-top desktop widget. Stream Zoho ticket counts + ASAP/Waiting 
 - Frameless window. `alwaysOnTop: true`. `skipTaskbar: true`. `decorations: false`.
 - Window ~360px wide, ~640px tall. Height resizable.
 - Cross-platform: Linux, Windows, macOS.
-- WS endpoint: `wss://your-domain.com/zoho/wss`. No auth required.
+- WS endpoint: `ZOHO_WS_URL` env var, baked at compile time via Rust `env!`. No fallback — build fails if unset. No auth required.
 - Rust backend ! maintain WS connection even when window hidden/minimized to tray.
 - No AppShell/Sidebar/TopCommandBar. Widget too small for full shell.
 - No click-to-open ticket URLs (deferred).
@@ -24,7 +24,7 @@ Tauri v2 always-on-top desktop widget. Stream Zoho ticket counts + ASAP/Waiting 
 
 ## §I INTERFACES
 
-- ws: `wss://your-domain.com/zoho/wss` → JSON `{ data: { total_ticket: [{status, total}], onhold_ticket: [{tag, total}], waiting_response: [{id_ticket, department, status_ticket, customer_response_time, subject, timestamp}] } }`
+- ws: `ZOHO_WS_URL` env var (compile-time via `env!`) → JSON `{ data: { total_ticket: [{status, total}], onhold_ticket: [{tag, total}], waiting_response: [{id_ticket, department, status_ticket, customer_response_time, subject, timestamp}] } }`. No fallback — build fails if unset.
 - tauri-event: `ticket-data` → frontend. Payload: parsed counts + waiting list.
 - tauri-event: `ticket-move` → frontend. Payload: `{ id_ticket, from: "new"\|"warning"\|"asap", to: "new"\|"warning"\|"asap" }`.
 - tauri-cmd: `get_current_tickets()` → returns last cached ticket data.
@@ -39,6 +39,7 @@ Tauri v2 always-on-top desktop widget. Stream Zoho ticket counts + ASAP/Waiting 
 - ci: `.github/workflows/release.yml` → tag `v*` triggers cross-platform build. Draft release. Uploads `.sig` + `latest.json` manifest.
 - env: `TAURI_SIGNING_PRIVATE_KEY` required for release CI. Generates `.sig` files for updater verification.
 - env: `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` required if key encrypted.
+- env: `ZOHO_WS_URL` — WS endpoint, baked at compile time via Rust `env!`. GitHub secret. No fallback — build fails if unset.
 - docs: `README.md` → overview, screenshots, install, dev setup, build, env vars, troubleshooting.
 - docs: `CHANGELOG.md` → version history. One entry per release.
 
@@ -49,7 +50,7 @@ V2: WS connection ! auto-reconnect on disconnect. Backoff: 1s → 2s → 5s → 
 V3: ∀ ticket move to ASAP → native notification fired.
 V4: Timer re-evaluate every 3s. ∀ waiting ticket → check elapsed time vs thresholds (600s, 900s).
 V5: Window `alwaysOnTop` ! `true` at all times. User ! can toggle via tray menu.
-V6: WS endpoint hardcoded `wss://your-domain.com/zoho/wss`. No auth/token needed.
+V6: WS endpoint via `ZOHO_WS_URL` env var, baked at compile time via `env!`. No fallback — build fails if unset. No auth/token needed.
 V7: Frontend ! render BIGSU components only. ⊥ raw HTML/jQuery.
 V8: ∀ MetricCard ! show label + value + period.
 V9: Ticket card ! show: id_ticket, department (Badge), subject, elapsed time, urgency Badge (danger/warning/info).
@@ -73,7 +74,7 @@ T5|x|impl Rust 3s timer: re-evaluate elapsed time, emit ticket-move events|V4,I.
 T6|x|impl Rust notification: fire on ticket → ASAP threshold cross|V3,I.notify
 T7|x|impl system tray: toggle window, ASAP count badge|V5,I.tray
 T8|x|impl tauri commands: get_current_tickets, reconnect_ws|I.tauri-cmd
-T9|x|WS endpoint hardcoded. No token needed.|V6
+T9|x|WS endpoint via `ZOHO_WS_URL` env var (`env!`). No token needed.|V6
 T10|x|build WidgetHeader component (compact, custom, no AppShell)|V11
 T11|x|build CountGrid: MetricCards for GIO Open/OnProgress/OnHold + OnHold Abuse/Incident/Sales|V8,I.ws
 T12|x|build TicketCard: id, dept Badge, subject, elapsed, urgency Badge|V9,V10
