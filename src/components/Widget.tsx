@@ -12,7 +12,7 @@ import useTicketEvents from "../hooks/useTicketEvents";
 import { classifyTicket } from "../constants";
 
 function Widget() {
-  const { data, loading, error, tick } = useTicketEvents();
+  const { data, loading, error } = useTicketEvents();
   const [mode, setMode] = useState<DisplayMode>("all");
 
   const waiting = data?.waiting_response ?? [];
@@ -34,7 +34,7 @@ function Widget() {
       {error && !data && <ErrorTicketState />}
       {showEmpty && showWaiting && <EmptyTicketState />}
       {!loading && !error && data && waiting.length > 0 && showWaiting && (
-        <main className="flex-1 overflow-y-auto p-3" key={tick}>
+        <main className="flex-1 overflow-y-auto p-3">
           <div className="flex flex-col gap-3">
             {asapCount > 0 && <AsapList tickets={waiting} />}
             <WaitingList tickets={waiting} />

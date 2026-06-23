@@ -1,14 +1,9 @@
 import { ErrorState } from "@gio/bigsu-ui";
 import { invoke } from "@tauri-apps/api/core";
 
-interface ErrorTicketStateProps {
-  onRetry?: () => void;
-}
-
-function ErrorTicketState({ onRetry }: ErrorTicketStateProps) {
+function ErrorTicketState() {
   const handleRetry = () => {
     invoke("reconnect_ws");
-    onRetry?.();
   };
 
   return (
