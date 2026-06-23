@@ -102,8 +102,8 @@ build-linux: check-key ## Build Linux bundles (.AppImage/.deb)
 build-windows: check-key ## Build Windows installers (NSIS .exe/.msi)
 	$(TAURI) build
 
-.PHONY: build-mac
-build-mac: check-key ## Build macOS universal (arm64 + x86_64)
+.PHONY: build-macos
+build-macos: check-key ## Build macOS universal (arm64 + x86_64)
 	rustup target add aarch64-apple-darwin x86_64-apple-darwin
 	$(TAURI) build --target universal-apple-darwin
 
