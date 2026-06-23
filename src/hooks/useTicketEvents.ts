@@ -1,20 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import type { TicketPayload, TicketMoveEvent } from "../types";
-
-export interface TicketMoveRecord {
-  id_ticket: string;
-  from: string;
-  to: string;
-  timestamp: number;
-}
+import type { TicketPayload } from "../types";
 
 interface UseTicketEventsResult {
   data: TicketPayload | null;
   loading: boolean;
   error: boolean;
-  moves: TicketMoveRecord[];
   tick: number;
 }
 
@@ -22,7 +14,6 @@ function useTicketEvents(): UseTicketEventsResult {
   const [data, setData] = useState<TicketPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [moves, setMoves] = useState<TicketMoveRecord[]>([]);
   const [tick, setTick] = useState(0);
   const hasData = useRef(false);
 
@@ -64,23 +55,6 @@ function useTicketEvents(): UseTicketEventsResult {
       }
       unlisteners.push(unlistenData);
 
-      const unlistenMove = await listen<TicketMoveEvent>("ticket-move", (event) => {
-        if (cancelled) return;
-        setMoves((prev) => [
-          ...prev.slice(-49),
-          {
-            id_ticket: event.payload.id_ticket,
-            from: event.payload.from,
-            to: event.payload.to,
-            timestamp: Date.now(),
-          },
-        ]);
-      });
-      if (cancelled) {
-        unlistenMove();
-        return;
-      }
-      unlisteners.push(unlistenMove);
     })();
 
     return () => {
@@ -95,7 +69,7 @@ function useTicketEvents(): UseTicketEventsResult {
     return () => clearInterval(interval);
   }, []);
 
-  return { data, loading, error, moves, tick };
+  return { data, loading, error, tick };
 }
 
 export default useTicketEvents;
